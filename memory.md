@@ -166,7 +166,7 @@ if shelter == stall and level > 0: advise "a stable blanket is fine; it needn't 
 ### 4. Horse adjustment (separate from the weather cap)
 ```
 // before step 1, outside decide(): low, feelLow (and each source's) -= offset
-// the first reason shows the real temperature, plus "blanketing as if N° colder"
+// the first reason shows the real temperature, plus "with each blanket starting N° warmer"
 // "take it off" limit: MAX_OK + offset
 if warm and eff < 50 and level < 5:  level += 1   // legacy; Neighcast now always passes warm = false
 ```
