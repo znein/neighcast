@@ -18,7 +18,7 @@ those sources give. Several adjustments are Neighcast's own heuristics, marked b
 | Run-in shed = count half the wind chill | **Neighcast's own heuristic.** |
 | Box stall = air temperature only, no wet or wind adjustments | **Neighcast's own heuristic.** Indoors there is no wind chill and no rain. Rutgers says shelter saves up to 20% body heat, but no source gives a stall-specific number. |
 | Gusts ≥ 30 mph with no shelter → one weight up | **Neighcast's own heuristic.** |
-| "Feels the cold more" → one weight up | The direction is published guidance (seniors, thin horses, hard keepers need more); the size of the bump (+1) is Neighcast's own. |
+| Fine-tune slider (0–20°F colder) | Replaced "feels the cold more → one weight up" on 2026-11-23. The direction is published guidance (seniors, thin horses, hard keepers need more); the owner sets the size, because it varies by horse. |
 | Weather bumps capped at +1 in total | **Neighcast's own** (stops rain + wind from stacking to a heavyweight at mild temperatures). |
 | "Take it off by…" (`MAX_OK`) | **Neighcast's own**, derived from the band edges. |
 | Using the colder of two forecasts | **Neighcast's own** safety choice. |
@@ -94,7 +94,10 @@ Per horse (user settings):
 - `coat`: `unclipped` (full winter coat) | `partial` (trace/bib clip) | `clipped` (full clip, or a thin summer coat)
 - `shelter`: `none` (out in the field) | `runin` (run-in shed or open shelter) | `stall` (box stall inside a barn).
   Older saved settings used a bool: `true` → `runin`, `false` → `none`.
-- `warm`: feels the cold more – senior, thin, hard keeper, not acclimatized (bool)
+- `offset`: fine-tune, 0–20 °F (slider, default 0). Every temperature in the night is lowered by this much
+  before `decide()` sees it, so every band moves that many degrees warmer. It replaced the `warm` box on
+  2026-11-23; an old saved `warm: true` (or `?warm=1` link) becomes `offset: 10`. `decide()` still reads
+  `warm`, but Neighcast always passes `false`, as The Mane Forecast does.
 
 Per night, from the forecast (°F, mph, inches):
 - **Night window: 18:00 → 08:00 next morning, local time at the barn** (14 hourly values; skip a night with fewer than 10).
@@ -162,7 +165,10 @@ if shelter == stall and level > 0: advise "a stable blanket is fine; it needn't 
 
 ### 4. Horse adjustment (separate from the weather cap)
 ```
-if warm and eff < 50 and level < 5:  level += 1
+// before step 1, outside decide(): low, feelLow (and each source's) -= offset
+// the first reason shows the real temperature, plus "blanketing as if N° colder"
+// "take it off" limit: MAX_OK + offset
+if warm and eff < 50 and level < 5:  level += 1   // legacy; Neighcast now always passes warm = false
 ```
 
 ### 5. "Take it off by…" warning

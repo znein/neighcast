@@ -116,7 +116,7 @@ dialog { border: 0; border-radius: var(--radius); box-shadow: var(--shadow); pad
 dialog::backdrop { background: rgba(38,50,63,.55); }
 #settings-form { padding: 22px; display: flex; flex-direction: column; gap: 12px; }
 #settings-form label { display: flex; flex-direction: column; gap: 5px; font-weight: 700; }
-#settings-form input:not([type=radio]):not([type=checkbox]) { font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; width: 100%; }
+#settings-form input:not([type=radio]):not([type=checkbox]):not([type=range]) { font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; width: 100%; }
 #settings-form .row { display: flex; gap: 8px; }
 #settings-form fieldset { border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px 10px; }
 #settings-form legend { font-weight: 800; padding: 0 4px; }
@@ -168,3 +168,7 @@ dialog::backdrop { background: rgba(38,50,63,.55); }
   .night p { margin: 0; }
   .n-call { min-height: 0; }
 }
+#settings-form .range-row { gap: 8px; font-weight: 700; }
+#settings-form .range-row output { color: var(--night-2); font-variant-numeric: tabular-nums; }
+#settings-form input[type=range] { width: 100%; height: 28px; margin: 0; accent-color: var(--night-2); }
+.opt-note.inline { display: inline; }

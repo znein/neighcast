@@ -113,8 +113,11 @@
       <label class="opt"><input type="radio" name="shelter" value="stall"> Box stall inside a barn</label>
     </fieldset>
     <fieldset>
-      <legend>Extras</legend>
-      <label class="opt"><input type="checkbox" name="warm"> <span><b>Feels the cold more</b> <span class="opt-note">senior, thin, hard keeper, or not used to the climate: one weight warmer on nights that feel colder than 50°F</span></span></label>
+      <legend>Fine-tune <span class="opt-note inline">optional</span></legend>
+      <label class="range-row" for="comfort"><span>Blanket as if it's <output id="comfort-out">0°</output> colder</span>
+        <input type="range" id="comfort" name="offset" min="0" max="20" step="1" value="0">
+        <span class="opt-note">For a horse that runs colder than the chart: a senior, a thin horse or hard keeper, or one new to the climate. Every range moves warmer: at 5°, a blanket that starts at 30°F starts at 35°F. Leave it at 0° if the chart suits your horse.</span>
+      </label>
     </fieldset>
     <div class="bands" aria-live="polite">
       <span class="bands-title">With these settings</span>
