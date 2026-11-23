@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neighcast – Should your horse wear a blanket tonight?</title>
+  <meta name="description" content="Neighcast turns tonight's forecast into one answer: does your horse need a blanket, and which weight? Wind chill, rain and snow, clipped or unclipped, plus the week ahead.">
+  <meta name="theme-color" content="#26323f">
+  <meta property="og:title" content="Neighcast – the forecast with horse sense">
+  <meta property="og:description" content="Blanket or not? Tonight's call and the week ahead, from the live forecast.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap top-inner">
+    <a class="logo" href="./">🐴 Neigh<span>cast</span></a>
+    <nav>
+      <a href="#week">Week</a>
+      <a href="blanket-guide.html">Blanket guide</a>
+      <button class="link-btn" id="open-settings" type="button">Settings</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero" id="hero">
+    <p class="eyebrow" id="place">Loading your barn's forecast…</p>
+    <h1 id="headline">Blanket tonight?</h1>
+
+    <div class="call-card" id="call-card" hidden>
+      <div class="call-main">
+        <div class="call-icon" id="call-icon" aria-hidden="true">🧥</div>
+        <div>
+          <p class="call-label" id="call-for">Tonight</p>
+          <p class="call-answer" id="call-answer">–</p>
+          <p class="call-weight" id="call-weight"></p>
+        </div>
+      </div>
+      <ul class="call-facts" id="call-facts"></ul>
+      <p class="call-why" id="call-why"></p>
+      <p class="call-sources" id="call-sources"></p>
+      <p class="call-off" id="call-off" hidden></p>
+    </div>
+
+    <div class="alerts" id="alerts"></div>
+    <p class="status" id="status" aria-live="polite"></p>
+  </section>
+
+  <section class="panel" id="tonight-chart-wrap" hidden>
+    <h2 id="chart-title">Tonight, hour by hour</h2>
+    <div class="chart" id="chart"></div>
+    <p class="legend"><span class="sw sw-temp"></span> Temperature (Open-Meteo) <span class="sw sw-nws"></span> Temperature (NWS) <span class="sw sw-feel"></span> Feels like (wind chill) <span class="sw sw-wet"></span> Rain/snow chance</p>
+  </section>
+
+  <section class="panel" id="week" hidden>
+    <h2 id="week-title">The week of nights</h2>
+    <div class="week" id="week-list"></div>
+  </section>
+
+  <section class="panel note">
+    <h2>How Neighcast decides</h2>
+    <p>It pulls two forecasts - Open-Meteo and the National Weather Service - and uses whichever is colder for the coldest "feels like" (wind chill) temperature between 6 pm and 8 am. It flags nights where they disagree. Then it adds wind and any rain or snow, then uses the standard blanketing chart for your horse's coat - unclipped, partly clipped or fully clipped. Wet coats lose their warmth, so rain or snow can bump the call up a level, a run-in shed takes some of the bite out of the wind, and a box stall takes it all. <a href="blanket-guide.html">See the full chart</a>.</p>
+    <details class="cold-explainer">
+      <summary>How cold is too cold?</summary>
+      <p>A <b>dry, thick winter coat</b> is excellent insulation. Horses with one don't start burning extra energy to stay warm until about <b>18°F</b> (<a href="https://esc.rutgers.edu/fact_sheet/to-blanket-or-not-to-blanket/">Rutgers</a>, <a href="https://extension.umn.edu/horse-care-and-management/caring-your-horse-winter">University of Minnesota</a>). That's why the Unclipped setting rarely calls for a blanket above 30°F.</p>
+      <p><b>Wet changes everything.</b> A wet or thin coat loses most of that protection, closer to <b>59°F</b> (Rutgers), which is why rain or snow moves the call up.</p>
+      <p><b>Most horses in mild climates never grow that coat,</b> so they're blanketed like clipped horses (<a href="https://extension.umaine.edu/publications/?p=32170">University of Maine</a>). Shelter, plenty of hay and good body condition all help.</p>
+      <p class="fine">General guidance from university extension services, not veterinary advice. Your vet knows your horse best.</p>
+    </details>
+    <p class="fine">A guide, not a vet. Every horse is different: slide a hand under the blanket at the withers - warm and dry is right, damp or sweaty means too much.</p>
+  </section>
+
+</main>
+
+<dialog id="level-info" class="level-dialog">
+  <form method="dialog" class="level-body">
+    <div class="level-head"><span class="level-icon" id="level-icon" aria-hidden="true"></span>
+      <div><h2 id="level-name"></h2><p class="level-weight" id="level-weight"></p></div></div>
+    <p id="level-about"></p>
+    <p class="level-band" id="level-band"></p>
+    <p class="level-night" id="level-night"></p>
+    <p class="fine"><a href="blanket-guide.html">The full blanket chart</a> · A guide, not a vet.</p>
+    <div class="dialog-btns"><button class="btn" value="close">Got it</button></div>
+  </form>
+</dialog>
+
+<dialog id="settings">
+  <form method="dialog" id="settings-form">
+    <h2>Your barn &amp; horse</h2>
+    <label>Where's the barn?
+      <span class="row"><input id="place-input" name="place" placeholder="ZIP code or town, state" autocomplete="postal-code"><button type="button" id="find-place" class="btn small">Find</button></span>
+    </label>
+    <button type="button" id="use-gps" class="btn ghost small">📍 Use this phone's location</button>
+    <ul class="place-results" id="place-results"></ul>
+    <p class="fine" id="place-chosen"></p>
+    <label>Horse's name
+      <input name="horse" placeholder="e.g. Mikey" maxlength="30">
+    </label>
+    <fieldset>
+      <legend>Coat</legend>
+      <label class="opt"><input type="radio" name="coat" value="unclipped" checked> <span><b>Unclipped</b> <span class="opt-note">a thick coat grown for cold winters</span></span></label>
+      <label class="opt"><input type="radio" name="coat" value="partial"> <span><b>Partly clipped</b> <span class="opt-note">trace or bib clip</span></span></label>
+      <label class="opt"><input type="radio" name="coat" value="clipped"> <span><b>Clipped</b> <span class="opt-note">full clip, a summer-weight coat, or a horse in a mild climate that never grows a real winter coat</span></span></label>
+      <p class="coat-tip"><b>In a mild climate</b> (like Southern California, Florida or Texas)? Most horses there never grow a cold-climate coat, so choose <b>Clipped</b>. Extension services treat horses that aren't used to cold winters like clipped horses.</p>
+    </fieldset>
+    <fieldset>
+      <legend>Overnight</legend>
+      <label class="opt"><input type="radio" name="shelter" value="none" checked> Out in the field, no shelter</label>
+      <label class="opt"><input type="radio" name="shelter" value="runin"> Run-in shed or open shelter</label>
+      <label class="opt"><input type="radio" name="shelter" value="stall"> Box stall inside a barn</label>
+    </fieldset>
+    <fieldset>
+      <legend>Extras</legend>
+      <label class="opt"><input type="checkbox" name="warm"> <span><b>Feels the cold more</b> <span class="opt-note">senior, thin, hard keeper, or not used to the climate: one weight warmer on nights that feel colder than 50°F</span></span></label>
+    </fieldset>
+    <div class="bands" aria-live="polite">
+      <span class="bands-title">With these settings</span>
+      <ul id="coat-bands"></ul>
+      <span class="fine" id="coat-bands-note"></span>
+    </div>
+    <p class="fine">Saved only on this device. Neighcast never sends your location anywhere except the weather services that make the forecast.</p>
+    <div class="dialog-btns">
+      <button class="btn" value="save" id="save-settings">Save</button>
+      <button class="btn ghost" value="cancel" formnovalidate>Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<footer class="foot">
+  <div class="wrap">
+    <p>🐴 Neighcast · the forecast with horse sense · made by Team Mikey for Mom</p>
+    <p class="fine">Forecasts: <a href="https://open-meteo.com/">Open-Meteo</a> and the <a href="https://www.weather.gov/">National Weather Service</a> (also warnings). A blanketing guide, not veterinary advice.</p>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
