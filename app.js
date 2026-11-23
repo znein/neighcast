@@ -245,7 +245,7 @@
   // decide() on the shifted night, with the first reason showing the real temperature.
   function call(n) {
     var c = decide(shifted(n), S);
-    if (S.offset) c.why[0] = c.why[0].replace(/-?\d+°F/, Math.round(c.eff + S.offset) + "°F") + ", blanketing as if " + S.offset + "° colder";
+    if (S.offset) c.why[0] = c.why[0].replace(/-?\d+°F/, Math.round(c.eff + S.offset) + "°F") + ", with each blanket starting " + S.offset + "° warmer";
     return c;
   }
   function solo(n, src) { return soloLevel(shifted(n), src, S); }

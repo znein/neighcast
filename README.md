@@ -28,9 +28,9 @@ Live at **https://znein.github.io/neighcast/**
    - Only one weather bump is ever applied in a night.
    - A **run-in shed** takes some of the bite out of the wind.
    - A **box stall** takes all of it.
-5. **Fine-tune** (optional, 0–20°F): blanket as if the night were that much colder, for a horse
+5. **Fine-tune** (optional, 0–20°F): start each blanket that many degrees warmer, for a horse
    that runs colder than the chart: a senior, a thin horse or hard keeper, or one new to the
-   climate. Every range moves that many degrees warmer.
+   climate.
 
 The chart is based on university extension guidance (Maine, Rutgers, Minnesota, Penn State) and
 retailer charts. See [blanket-guide.html](blanket-guide.html) for the chart, and
