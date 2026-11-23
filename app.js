@@ -10,19 +10,24 @@
   // ---------- settings ----------
   var CHART_COATS = ["unclipped", "partial", "clipped"];
   var SHELTERS = ["none", "runin", "stall"];
-  var DEFAULTS = { lat: null, lon: null, label: "", horse: "", coat: "unclipped", shelter: "none", warm: false };
+  var DEFAULTS = { lat: null, lon: null, label: "", horse: "", coat: "unclipped", shelter: "none", warm: false, offset: 0 };
   function loadSettings() {
     try {
       var s = Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(KEY) || "{}"));
       if (SHELTERS.indexOf(s.shelter) < 0) s.shelter = s.shelter === true ? "runin" : "none";  // old true/false setting
+      if (s.warm) { s.offset = 10; s.warm = false; }  // old "feels the cold" box: about one weight warmer
+      s.offset = clampOffset(s.offset);
       return s;
     }
     catch (e) { return Object.assign({}, DEFAULTS); }
   }
+  // Fine-tune: blanket as if the night were this many °F colder (0-20). Applied to the temperatures
+  // before decide() sees them (see shifted()), so the shared rules stay untouched.
+  function clampOffset(v) { return isFinite(+v) ? Math.max(0, Math.min(20, Math.round(+v))) : 0; }
   function saveSettings(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
   var S = loadSettings();
 
-  // Setup link: ?at=LAT,LON&place=Label&horse=Name&coat=unclipped|partial|clipped&shelter=none|runin|stall&warm=1
+  // Setup link: ?at=LAT,LON&place=Label&horse=Name&coat=unclipped|partial|clipped&shelter=none|runin|stall&offset=0-20
   // Saves those settings on this device, then removes them from the address bar.
   (function fromLink() {
     var q = new URLSearchParams(location.search), at = (q.get("at") || "").split(",");
@@ -33,7 +38,8 @@
     if (CHART_COATS.indexOf(q.get("coat")) >= 0) S.coat = q.get("coat");
     var sh = q.get("shelter");
     if (sh) S.shelter = SHELTERS.indexOf(sh) >= 0 ? sh : (sh === "1" ? "runin" : "none");
-    if (q.has("warm")) S.warm = q.get("warm") === "1";
+    if (q.has("offset")) S.offset = clampOffset(q.get("offset"));
+    else if (q.get("warm") === "1") S.offset = 10;  // older links
     saveSettings(S);
     if (history.replaceState) history.replaceState(null, "", location.pathname);
   })();
@@ -228,6 +234,21 @@
   function r(v) { return Math.round(v); }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function horse() { return S.horse ? esc(S.horse) : "your horse"; }
+  // The night as the rules should see it: every temperature lowered by the fine-tune offset.
+  function shifted(n) {
+    var d = S.offset; if (!d) return n;
+    var x = Object.assign({}, n, { low: n.low - d, feelLow: n.feelLow - d });
+    if (n.om) x.om = Object.assign({}, n.om, { low: n.om.low - d, feelLow: n.om.feelLow - d });
+    if (n.nws) x.nws = Object.assign({}, n.nws, { low: n.nws.low - d, feelLow: n.nws.feelLow - d });
+    return x;
+  }
+  // decide() on the shifted night, with the first reason showing the real temperature.
+  function call(n) {
+    var c = decide(shifted(n), S);
+    if (S.offset) c.why[0] = c.why[0].replace(/-?\d+°F/, Math.round(c.eff + S.offset) + "°F") + ", blanketing as if " + S.offset + "° colder";
+    return c;
+  }
+  function solo(n, src) { return soloLevel(shifted(n), src, S); }
   function ymd(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 
   // ---------- render ----------
@@ -241,7 +262,7 @@
     ns = ns.slice(Math.max(0, k));
     if (!ns.length) throw new Error("no overnight hours in the forecast");
 
-    var n0 = ns[0], c0 = decide(n0, S), L = LEVELS[c0.level];
+    var n0 = ns[0], c0 = call(n0), L = LEVELS[c0.level];
     $("#headline").innerHTML = "Blanket " + horse() + " tonight?";
     $("#call-for").textContent = nightSpan(n0);
     $("#call-answer").textContent = c0.level === 0 ? "No blanket needed" : "Yes – " + L.name.toLowerCase();
@@ -259,7 +280,7 @@
     $("#call-why").textContent = c0.why.join("; ") + ".";
 
     // Source agreement
-    var src = $("#call-sources"), lo = soloLevel(n0, "om", S), ln = soloLevel(n0, "nws", S);
+    var src = $("#call-sources"), lo = solo(n0, "om"), ln = solo(n0, "nws");
     if (!n0.nws) {
       src.className = "call-sources warn";
       src.innerHTML = "Only Open-Meteo tonight – the National Weather Service forecast " + (nws ? "doesn't reach this night yet" : "didn't load") + ".";
@@ -277,7 +298,7 @@
 
     var off = $("#call-off"); off.hidden = true;
     if (c0.level > 0 && n0.day.length) {
-      var limit = MAX_OK[S.coat][c0.level];
+      var limit = MAX_OK[S.coat][c0.level] + S.offset;  // comfortable in it that much warmer, too
       var hot = n0.day.filter(function (i) { return h.temperature_2m[i] > limit + 5; })[0];
       if (hot != null) {
         off.hidden = false;
@@ -297,10 +318,10 @@
 
     WEEK = [];
     $("#week-list").innerHTML = ns.slice(0, 7).map(function (n, i) {
-      var c = decide(n, S), Lv = LEVELS[c.level];
+      var c = call(n), Lv = LEVELS[c.level];
       WEEK.push({ n: n, c: c, name: nightName(n, i) });
       var wet = n.snow >= 0.1 ? "❄️ " + n.snow.toFixed(1) + " in" : (n.precipChance >= 40 ? "🌧 " + r(n.precipChance) + "%" : "");
-      var a = soloLevel(n, "om", S), b = soloLevel(n, "nws", S);
+      var a = solo(n, "om"), b = solo(n, "nws");
       var srcLine = n.nws ? '<p class="n-src' + (a !== b || n.gap > 5 ? " split" : "") + '">' + (a !== b ? "⚖️ " : "") + "OM " + r(n.om.low) + "° · NWS " + r(n.nws.low) + "°</p>"
                           : '<p class="n-src">Open-Meteo only</p>';
       return '<div class="night lvl-' + c.level + '"><p class="n-name">' + nightName(n, i) + '</p><p class="n-date">' + shortDate(n.date) + '</p><p class="n-icon">' + Lv.icon +
@@ -368,7 +389,7 @@
     $("#level-name").textContent = L.name;
     $("#level-weight").textContent = L.weight;
     $("#level-about").textContent = ABOUT[w.c.level];
-    $("#level-band").textContent = bandText(S.coat, w.c.level);
+    $("#level-band").textContent = levelBand(S.coat, S.offset, w.c.level);
     $("#level-night").innerHTML = "<b>" + esc(w.name) + " (" + nightSpan(w.n) + "):</b> low " + r(w.n.low) + "°F, feels like " + r(w.n.feelLow) + "°F. " + esc(w.c.why.join("; ")) + ".";
     if (d.showModal) d.showModal(); else d.setAttribute("open", "");
   }
@@ -383,33 +404,44 @@
   function openSettings() {
     form.horse.value = S.horse || "";
     form.querySelector('input[name=coat][value="' + S.coat + '"]').checked = true;
-    form.querySelector('input[name=shelter][value="' + S.shelter + '"]').checked = true; form.warm.checked = !!S.warm;
+    form.querySelector('input[name=shelter][value="' + S.shelter + '"]').checked = true; form.offset.value = S.offset;
     $("#place-chosen").textContent = S.label ? "Current: " + S.label : "";
     $("#place-results").innerHTML = ""; pending = null; searched = null; $("#place-input").value = "";
     coatBands();
     if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
   }
-  // "With these settings": each blanket's temperature range for the coat and "feels the cold" picked
-  // in the form, worked out degree by degree with chartLevel() and the same +1-below-50°F rule as
-  // decide(), for a dry night. Updates as the form changes.
+  // Each blanket's temperature range for a coat and fine-tune offset, worked out degree by degree
+  // the way decide() handles a dry night. Used by "With these settings" and the blanket popup.
   var BAND_NAMES = ["No blanket", "Sheet (0g)", "Light (50–150g)", "Medium (180–250g)", "Heavy (300g+)", "Heavy + liner"];
-  function coatBands() {
-    var coatEl = form.querySelector("input[name=coat]:checked"), shelterEl = form.querySelector("input[name=shelter]:checked");
-    var coat = coatEl ? coatEl.value : S.coat, warm = form.warm.checked, out = [];
+  function bands(coat, offset) {
+    var out = [];
     for (var t = 100; t >= -20; t--) {
-      var lv = chartLevel(coat, t);
-      if (warm && t < 50 && lv < 5) lv += 1;
-      var last = out[out.length - 1];
+      var lv = chartLevel(coat, t - offset), last = out[out.length - 1];
       if (last && last.level === lv) last.low = t; else out.push({ level: lv, high: t, low: t });
     }
-    $("#coat-bands").innerHTML = out.map(function (b, i) {
-      var range = i === 0 ? b.low + "° and warmer" : i === out.length - 1 ? "below " + (b.high + 1) + "°" : b.low + "° to " + (b.high + 1) + "°";
-      return '<li class="lvl-' + b.level + '"><span>' + BAND_NAMES[b.level] + "</span><span>" + range + "</span></li>";
+    return out.map(function (b, i) {
+      b.range = i === 0 ? b.low + "° and warmer" : i === out.length - 1 ? "below " + (b.high + 1) + "°" : b.low + "° to " + (b.high + 1) + "°";
+      return b;
+    });
+  }
+  function levelBand(coat, offset, level) {
+    var b = bands(coat, offset).filter(function (x) { return x.level === level; })[0];
+    if (!b) return bandText(coat, level);
+    return "For " + COAT_NAME[coat] + (offset ? " fine-tuned " + offset + "° warmer" : "") + ", Neighcast picks this when it feels like " +
+      b.range.replace(/°/g, "°F").replace("°F and warmer", "°F and up") + " (before any bump for rain or wind).";
+  }
+  function coatBands() {
+    var coatEl = form.querySelector("input[name=coat]:checked"), shelterEl = form.querySelector("input[name=shelter]:checked");
+    var coat = coatEl ? coatEl.value : S.coat, offset = clampOffset(form.offset.value);
+    $("#comfort-out").textContent = offset + "°";
+    $("#coat-bands").innerHTML = bands(coat, offset).map(function (b) {
+      return '<li class="lvl-' + b.level + '"><span>' + BAND_NAMES[b.level] + "</span><span>" + b.range + "</span></li>";
     }).join("");
     var stall = shelterEl && shelterEl.value === "stall";
     $("#coat-bands-note").textContent = (stall ? "Air temperature in a closed stall, overnight. " : "The coldest it feels at your horse's shelter, overnight. ") +
-      (warm ? 'Includes "feels the cold".' : "Rain, snow or wind can move it up one more weight.");
+      "Rain, snow or wind can move it up one more weight.";
   }
+  form.addEventListener("input", function (e) { if (e.target.name === "offset") coatBands(); });
   form.addEventListener("change", coatBands);
   function choose(p) {
     pending = p; $("#place-results").innerHTML = "";
@@ -474,7 +506,7 @@
     if (pending) { S.lat = +(+pending.lat).toFixed(2); S.lon = +(+pending.lon).toFixed(2); S.label = pending.label; }
     S.horse = form.horse.value.trim();
     S.coat = form.querySelector("input[name=coat]:checked").value;
-    S.shelter = form.querySelector("input[name=shelter]:checked").value; S.warm = form.warm.checked;
+    S.shelter = form.querySelector("input[name=shelter]:checked").value; S.warm = false; S.offset = clampOffset(form.offset.value);
     if (S.lat == null) { placeNote("Type the barn's ZIP code or town first, or use this phone's location."); return false; }
     saveSettings(S);
     setTimeout(load, 0);

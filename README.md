@@ -28,8 +28,9 @@ Live at **https://znein.github.io/neighcast/**
    - Only one weather bump is ever applied in a night.
    - A **run-in shed** takes some of the bite out of the wind.
    - A **box stall** takes all of it.
-   - **Feels the cold more** (senior, thin, hard keeper or not acclimated) adds one weight on
-     nights that feel colder than 50°F.
+5. **Fine-tune** (optional, 0–20°F): blanket as if the night were that much colder, for a horse
+   that runs colder than the chart: a senior, a thin horse or hard keeper, or one new to the
+   climate. Every range moves that many degrees warmer.
 
 The chart is based on university extension guidance (Maine, Rutgers, Minnesota, Penn State) and
 retailer charts. See [blanket-guide.html](blanket-guide.html) for the chart, and
@@ -52,7 +53,7 @@ Settings are saved **only on that device**, in the browser. Coordinates are roun
 A setup link can pre-fill the settings for someone else's phone:
 
 ```
-https://znein.github.io/neighcast/?at=LAT,LON&place=Town%2C%20ST&horse=Name&coat=clipped&shelter=stall&warm=1
+https://znein.github.io/neighcast/?at=LAT,LON&place=Town%2C%20ST&horse=Name&coat=clipped&shelter=stall&offset=5
 ```
 
 | Parameter | Values |
@@ -62,7 +63,7 @@ https://znein.github.io/neighcast/?at=LAT,LON&place=Town%2C%20ST&horse=Name&coat
 | `horse` | horse's name |
 | `coat` | `unclipped`, `partial`, `clipped` |
 | `shelter` | `none`, `runin`, `stall` |
-| `warm` | `1` for "feels the cold more" |
+| `offset` | fine-tune, `0` to `20` (°F) |
 
 When the link is opened, Neighcast saves the settings and removes them from the address bar.
 
